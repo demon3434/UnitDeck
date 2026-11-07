@@ -1,0 +1,21 @@
+services:
+  unitdeck:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: unitdeck:latest
+    container_name: unitdeck
+    restart: unless-stopped
+    pid: host
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - DATA_DIR=/app/data
+    volumes:
+      # Persistent storage under /opt as requested by user
+      - /opt/unitdeck/data:/app/data
+      # Map GPU DRM & device nodes for native 12GB VRAM monitoring
+      - /sys/class/drm:/sys/class/drm:ro
+      - /dev/dri:/dev/dri:ro
+    privileged: true

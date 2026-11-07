@@ -1,0 +1,117 @@
+# ==========================================
+# UnitDeck Git Ignore Configuration
+# ==========================================
+
+# 1. 敏感凭据与服务器信息 (Server Credentials & Docs)
+docs/server-info.md
+docs/server_info.md
+*server-info*
+*server_info*
+*.pem
+*.key
+.env
+.env.*
+!.env.example
+
+# 2. 运行时数据与配置 (Runtime Data & Config)
+data/
+*.log
+logs/
+*.sqlite
+*.sqlite3
+*.db
+auth.json
+config.json
+
+# 3. AI 编程痕迹与代理文件 (AI Programming Artifacts)
+.agents/
+openspec/
+.gemini/
+.claude/
+.cursor/
+.copilot/
+.aider*
+AGENTS.md
+CLAUDE.md
+skills-lock.json
+*.agent
+
+# 4. 临时工作区与脚本 (Scratch & Temp)
+scratch/
+temp/
+tmp/
+*.tmp
+
+# 5. 前端编译过程文件与依赖 (Frontend Build & Dependencies)
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+.vite/
+*.tsbuildinfo
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# 6. 后端 Python 编译缓存与虚拟环境 (Python Build & venv)
+__pycache__/
+backend/app/**/__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+.pytest_cache/
+.coverage
+.coverage.*
+htmlcov/
+coverage/
+venv/
+.venv/
+ENV/
+env/
+
+# 7. 测试代码与用例文件 (Tests & Mock Data)
+test/
+tests/
+backend/tests/
+frontend/tests/
+*.test.ts
+*.test.js
+*.spec.ts
+*.spec.js
+test_*.py
+*_test.py
+mock/
+mocks/
+
+# 8. 操作系统与 IDE 工具缓存 (OS & Editor Junk)
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+[Dd]esktop.ini
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
