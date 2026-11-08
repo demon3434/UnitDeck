@@ -3,8 +3,8 @@
     <!-- Page Header -->
     <div class="flex items-center justify-between pb-2 border-b border-base-content/10">
       <div>
-        <h1 class="text-xl sm:text-2xl font-bold">系统设置与服务纳管</h1>
-        <p class="text-xs text-base-content/60">配置受控程序清单、显存清理策略与界面风格</p>
+        <h1 class="text-xl sm:text-2xl font-bold">系统设置</h1>
+        <p class="text-xs text-base-content/60">管理受管服务、运行清理策略、界面风格与安全选项</p>
       </div>
       <router-link to="/" class="btn btn-outline btn-sm">返回控制台</router-link>
     </div>
