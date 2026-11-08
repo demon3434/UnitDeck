@@ -122,14 +122,14 @@
           <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow-2xl bg-base-100 rounded-box w-48 border border-base-content/10 text-xs space-y-1">
             <li class="menu-title px-2 py-1 text-[10px] text-base-content/50 uppercase tracking-wider">宿主机电源</li>
             <li>
-              <button type="button" class="flex items-center gap-2 text-warning hover:bg-warning/10 rounded-lg py-2" @click="openPowerModal('reboot')">
-                <RotateCw class="w-3.5 h-3.5" />
+              <button type="button" class="flex items-center gap-2.5 text-base-content hover:bg-warning/15 hover:text-warning-content rounded-lg py-2 font-medium" @click="openPowerModal('reboot')">
+                <RotateCw class="w-4 h-4 text-amber-600 dark:text-amber-400" />
                 <span>重启宿主机</span>
               </button>
             </li>
             <li>
-              <button type="button" class="flex items-center gap-2 text-error hover:bg-error/10 rounded-lg py-2" @click="openPowerModal('poweroff')">
-                <PowerOff class="w-3.5 h-3.5" />
+              <button type="button" class="flex items-center gap-2.5 text-base-content hover:bg-error/15 hover:text-error-content rounded-lg py-2 font-medium" @click="openPowerModal('poweroff')">
+                <PowerOff class="w-4 h-4 text-error" />
                 <span>关闭宿主机</span>
               </button>
             </li>

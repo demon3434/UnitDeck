@@ -24,22 +24,25 @@
 
         <!-- Warning Callout Box -->
         <div 
-          class="p-3.5 rounded-xl text-xs space-y-1.5 border"
-          :class="action === 'poweroff' ? 'bg-error/10 border-error/20 text-error' : 'bg-warning/10 border-warning/20 text-warning'"
+          class="p-3.5 rounded-xl text-xs space-y-2 border shadow-sm"
+          :class="action === 'poweroff' ? 'bg-error/10 border-error/30' : 'bg-amber-500/10 border-amber-500/30'"
         >
-          <div class="font-bold flex items-center gap-1.5">
+          <div 
+            class="font-bold flex items-center gap-1.5 text-sm"
+            :class="action === 'poweroff' ? 'text-error' : 'text-amber-800 dark:text-amber-300'"
+          >
             <AlertTriangle class="w-4 h-4 shrink-0" />
             <span>重要影响与安全警示</span>
           </div>
-          <ul class="list-disc list-inside space-y-1 opacity-90 text-[11px] leading-relaxed">
+          <ul class="list-disc list-inside space-y-1.5 text-base-content/85 text-[12px] leading-relaxed">
             <li v-if="action === 'poweroff'">
-              关机后 UnitDeck 控制台将<strong>立即完全离线</strong>。
+              关机后 UnitDeck 控制台将<strong class="text-error font-bold">立即完全离线</strong>。
             </li>
             <li v-if="action === 'poweroff'">
-              <strong>Web 界面无法远程开机</strong>，必须亲自到物理机前按下机箱电源按键！
+              <strong class="text-base-content font-bold">Web 界面无法远程开机</strong>，必须亲自到物理机前按下机箱电源按键！
             </li>
             <li v-if="action === 'reboot'">
-              正在执行的 AI 推理、训练及后台任务将<strong>强制中断</strong>。
+              正在执行的 AI 推理、训练及后台任务将<strong class="text-amber-800 dark:text-amber-300 font-bold">强制中断</strong>。
             </li>
             <li>系统所有受管的后台 systemd 服务将统一收到停止信号。</li>
           </ul>
@@ -61,8 +64,8 @@
 
         <!-- Lock Control for Reboot: Countdown Note -->
         <div v-if="action === 'reboot' && countdown > 0" class="text-center py-1">
-          <span class="text-xs text-base-content/50 font-medium">
-            防手抖保护锁定中，请稍候 <span class="font-bold text-warning font-mono">{{ countdown }}</span> 秒...
+          <span class="text-xs text-base-content/70 font-medium">
+            防手抖保护锁定中，请稍候 <span class="font-bold text-amber-700 dark:text-amber-400 font-mono text-sm">{{ countdown }}</span> 秒...
           </span>
         </div>
 
@@ -79,7 +82,7 @@
           <button 
             v-if="action === 'poweroff'"
             type="button"
-            class="btn btn-error btn-sm gap-1.5 shadow-sm"
+            class="btn btn-error btn-sm gap-1.5 shadow-sm text-white font-bold"
             :disabled="!canSubmit"
             @click="handleConfirm"
           >
@@ -90,7 +93,7 @@
           <button 
             v-else
             type="button"
-            class="btn btn-warning btn-sm gap-1.5 shadow-sm"
+            class="btn btn-warning text-warning-content font-bold btn-sm gap-1.5 shadow-sm"
             :disabled="!canSubmit"
             @click="handleConfirm"
           >
