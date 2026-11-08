@@ -14,19 +14,39 @@ AuthManager.ensure_auth()
 
 app = FastAPI(title="UnitDeck", description="AI Service & System Resource Control Hub", version="1.0.0")
 
-app.add_middleware(
-    CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=True,
-    allow_methods=["*"],
-    allow_headers=["*"],
-)
+# Standardized CORS configuration
+cors_origins_env = os.getenv("CORS_ORIGINS", "")
+allowed_origins = [o.strip() for o in cors_origins_env.split(",") if o.strip()]
+if allowed_origins:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=allowed_origins,
+        allow_credentials=True,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
+else:
+    app.add_middleware(
+        CORSMiddleware,
+        allow_origins=["*"],
+        allow_credentials=False,
+        allow_methods=["*"],
+        allow_headers=["*"],
+    )
 
 @app.middleware("http")
 async def auth_middleware(request: Request, call_next):
     path = request.url.path
-    # Allow login, health check, docs, and frontend static assets without token
-    if path.startswith("/api/auth/login") or path == "/api/health" or path.startswith("/docs") or path.startswith("/openapi.json") or not path.startswith("/api/"):
+    allow_unauth_docs = os.getenv("ENABLE_DOCS_NO_AUTH", "0") == "1"
+    
+    # Allow login, health check, and frontend static assets without token
+    is_public = (
+        path.startswith("/api/auth/login") or 
+        path == "/api/health" or 
+        (allow_unauth_docs and (path.startswith("/docs") or path.startswith("/openapi.json"))) or
+        (not path.startswith("/api/") and not path.startswith("/docs") and not path.startswith("/openapi.json"))
+    )
+    if is_public:
         return await call_next(request)
     
     auth_header = request.headers.get("Authorization", "")
@@ -68,4 +88,3 @@ if __name__ == "__main__":
     import uvicorn
     port = int(os.getenv("PORT", "8080"))
     uvicorn.run("app.main:app", host="0.0.0.0", port=port, reload=True)
-

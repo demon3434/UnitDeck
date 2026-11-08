@@ -6,10 +6,44 @@ from app.core.systemd_mgr import SYSTEMCTL_BIN
 
 NVIDIA_SMI_BIN = os.getenv("NVIDIA_SMI_PATH", shutil.which("nvidia-smi") or "/usr/bin/nvidia-smi")
 
+SYSTEM_AND_DESKTOP_PROCESS_WHITELIST = {
+    # Display servers & Desktop infrastructure
+    "xorg", "xwayland", "wayland", "gnome-shell", "kwin", "kwin_x11", "kwin_wayland",
+    "gdm", "gdm3", "gdm-x-session", "gdm-wayland-session", "lightdm", "sddm",
+    "plasmashell", "xfwm4", "mate-panel", "cinnamon", "weston", "sway", "hyprland",
+    # Core system & Container runtimes
+    "systemd", "dockerd", "containerd", "docker", "podman", "sshd", "init",
+    "nvidia-cuda-mps-server", "nvidia-cuda-mps-control", "dbus-daemon"
+}
+
+def is_whitelisted_process(pid: int, process_name: str) -> bool:
+    """Check if process belongs to desktop GUI or core system services"""
+    base_name = os.path.basename(process_name).lower().strip()
+    if base_name in SYSTEM_AND_DESKTOP_PROCESS_WHITELIST:
+        return True
+
+    # Read from /proc/<pid>/comm if available
+    try:
+        comm_path = f"/proc/{pid}/comm"
+        if os.path.exists(comm_path):
+            with open(comm_path, "r", encoding="utf-8") as f:
+                comm = f.read().strip().lower()
+                if comm in SYSTEM_AND_DESKTOP_PROCESS_WHITELIST:
+                    return True
+    except Exception:
+        pass
+
+    # Safety wildcard checks
+    for kw in ["xorg", "wayland", "gnome", "desktop", "plasma"]:
+        if kw in base_name:
+            return True
+
+    return False
+
 class ResourceCleaner:
     @classmethod
     async def clean_gpu_zombies(cls, active_unit_pids: List[int]) -> Dict[str, any]:
-        """Scan and kill orphaned processes holding GPU memory that are not part of active units"""
+        """Scan and kill orphaned processes holding GPU memory that are not part of active units, skipping whitelisted system processes"""
         killed_pids = []
         freed_vram_mb = 0
 
@@ -40,12 +74,17 @@ class ResourceCleaner:
                 parts = [p.strip() for p in line.split(",")]
                 if len(parts) >= 3 and parts[0].isdigit():
                     pid = int(parts[0])
+                    pname = parts[1]
                     vram_mb = int(float(parts[2])) if parts[2].isdigit() else 0
                     
+                    # Exclude whitelisted system and desktop infrastructure processes
+                    if is_whitelisted_process(pid, pname):
+                        continue
+
                     # If process is not belonging to any active systemd unit, it is orphaned
                     if pid not in active_unit_pids and pid > 100:
                         try:
-                            # Terminate process
+                            # Terminate orphaned process
                             os.kill(pid, 9)
                             killed_pids.append(pid)
                             freed_vram_mb += vram_mb
@@ -89,4 +128,3 @@ class ResourceCleaner:
             "ram_cpu": ram_result,
             "summary": f"Cleaned {len(gpu_result.get('killed_pids', []))} GPU processes ({gpu_result.get('freed_vram_mb', 0)} MB freed)."
         }
-

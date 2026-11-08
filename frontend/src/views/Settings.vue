@@ -9,8 +9,47 @@
       <router-link to="/" class="btn btn-outline btn-sm">返回控制台</router-link>
     </div>
 
-    <!-- Section 1: Systemd Services Discovery & Selection (Core User Requirement) -->
-    <div class="card bg-base-100 shadow border border-base-content/10">
+    <!-- Main Capsule Tabs Navigation (DaisyUI tabs-boxed) -->
+    <div class="flex items-center overflow-x-auto pb-1">
+      <div class="tabs tabs-boxed bg-base-200/90 p-1.5 rounded-2xl inline-flex gap-1 border border-base-content/10 shadow-sm max-w-full">
+        <button 
+          type="button" 
+          :class="['tab tab-sm sm:tab-md rounded-xl font-medium transition-all gap-2', currentMainTab === 'services' ? 'tab-active bg-primary text-primary-content shadow-sm' : 'hover:bg-base-300/60']"
+          @click="setMainTab('services')"
+        >
+          <ListChecks class="w-4 h-4" />
+          <span>服务纳管</span>
+          <span class="badge badge-xs" :class="currentMainTab === 'services' ? 'badge-neutral' : 'badge-primary'">{{ selectedUnits.length }}</span>
+        </button>
+        <button 
+          type="button" 
+          :class="['tab tab-sm sm:tab-md rounded-xl font-medium transition-all gap-2', currentMainTab === 'strategy' ? 'tab-active bg-primary text-primary-content shadow-sm' : 'hover:bg-base-300/60']"
+          @click="setMainTab('strategy')"
+        >
+          <ShieldAlert class="w-4 h-4" />
+          <span>运行策略</span>
+        </button>
+        <button 
+          type="button" 
+          :class="['tab tab-sm sm:tab-md rounded-xl font-medium transition-all gap-2', currentMainTab === 'appearance' ? 'tab-active bg-primary text-primary-content shadow-sm' : 'hover:bg-base-300/60']"
+          @click="setMainTab('appearance')"
+        >
+          <Palette class="w-4 h-4" />
+          <span>外观主题</span>
+        </button>
+        <button 
+          type="button" 
+          :class="['tab tab-sm sm:tab-md rounded-xl font-medium transition-all gap-2', currentMainTab === 'security' ? 'tab-active bg-primary text-primary-content shadow-sm' : 'hover:bg-base-300/60']"
+          @click="setMainTab('security')"
+        >
+          <Lock class="w-4 h-4" />
+          <span>账户安全</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Tab 1: Systemd Services Discovery & Selection (Core User Requirement) -->
+    <div v-show="currentMainTab === 'services'" class="card bg-base-100 shadow border border-base-content/10">
       <div class="card-body p-4 sm:p-6 space-y-4">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div>
@@ -180,8 +219,8 @@
       </div>
     </div>
 
-    <!-- Section 2: Strategy Settings (Force Kill & Cleanup) -->
-    <div class="card bg-base-100 shadow border border-base-content/10">
+    <!-- Tab 2: Strategy Settings (Force Kill & Cleanup) -->
+    <div v-show="currentMainTab === 'strategy'" class="card bg-base-100 shadow border border-base-content/10">
       <div class="card-body p-4 sm:p-6 space-y-4">
         <h2 class="font-bold text-base flex items-center gap-2">
           <ShieldAlert class="w-5 h-5 text-warning" />
@@ -214,8 +253,8 @@
       </div>
     </div>
 
-    <!-- Section 3: DaisyUI Theme Gallery (Rich UI Requirement) -->
-    <div class="card bg-base-100 shadow border border-base-content/10">
+    <!-- Tab 3: DaisyUI Theme Gallery (Rich UI Requirement) -->
+    <div v-show="currentMainTab === 'appearance'" class="card bg-base-100 shadow border border-base-content/10">
       <div class="card-body p-4 sm:p-6 space-y-4">
         <div>
           <h2 class="font-bold text-base flex items-center gap-2">
@@ -251,8 +290,8 @@
       </div>
     </div>
 
-    <!-- Section 4: Security Password Change -->
-    <div class="card bg-base-100 shadow border border-base-content/10">
+    <!-- Tab 4: Security Password Change -->
+    <div v-show="currentMainTab === 'security'" class="card bg-base-100 shadow border border-base-content/10">
       <div class="card-body p-4 sm:p-6 space-y-4">
         <h2 class="font-bold text-base flex items-center gap-2">
           <Lock class="w-5 h-5 text-accent" />
@@ -283,6 +322,7 @@
 
 <script setup lang="ts">
 import { ref, computed, onMounted } from 'vue';
+import { useRoute, useRouter } from 'vue-router';
 import { 
   ListChecks, Save, PlusCircle, ShieldAlert, Palette, Lock, 
   Sparkles, CheckCircle2, Layers 
@@ -292,9 +332,19 @@ import { useThemeStore } from '../stores/theme';
 import { useServicesStore } from '../stores/services';
 import { useToastStore } from '../stores/toast';
 
+const route = useRoute();
+const router = useRouter();
 const themeStore = useThemeStore();
 const servicesStore = useServicesStore();
 const toastStore = useToastStore();
+
+type MainTab = 'services' | 'strategy' | 'appearance' | 'security';
+const currentMainTab = ref<MainTab>('services');
+
+function setMainTab(tab: MainTab) {
+  currentMainTab.value = tab;
+  router.replace({ query: { ...route.query, tab } });
+}
 
 const candidateLoading = ref(false);
 const savingUnits = ref(false);
@@ -467,8 +517,11 @@ async function changePassword() {
 }
 
 onMounted(async () => {
+  const queryTab = route.query.tab as string;
+  if (queryTab && ['services', 'strategy', 'appearance', 'security'].includes(queryTab)) {
+    currentMainTab.value = queryTab as MainTab;
+  }
   await loadConfig();
   await loadCandidates();
 });
 </script>
-

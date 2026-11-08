@@ -114,6 +114,28 @@
           <Settings class="w-4 h-4" />
         </router-link>
 
+        <!-- Host Power Actions Dropdown -->
+        <div class="dropdown dropdown-end">
+          <div tabindex="0" role="button" class="btn btn-ghost btn-sm btn-circle text-error/80 hover:text-error hover:bg-error/10" title="宿主机电源管理">
+            <Power class="w-4 h-4" />
+          </div>
+          <ul tabindex="0" class="dropdown-content z-50 menu p-2 shadow-2xl bg-base-100 rounded-box w-48 border border-base-content/10 text-xs space-y-1">
+            <li class="menu-title px-2 py-1 text-[10px] text-base-content/50 uppercase tracking-wider">宿主机电源</li>
+            <li>
+              <button type="button" class="flex items-center gap-2 text-warning hover:bg-warning/10 rounded-lg py-2" @click="openPowerModal('reboot')">
+                <RotateCw class="w-3.5 h-3.5" />
+                <span>重启宿主机</span>
+              </button>
+            </li>
+            <li>
+              <button type="button" class="flex items-center gap-2 text-error hover:bg-error/10 rounded-lg py-2" @click="openPowerModal('poweroff')">
+                <PowerOff class="w-3.5 h-3.5" />
+                <span>关闭宿主机</span>
+              </button>
+            </li>
+          </ul>
+        </div>
+
         <!-- Logout -->
         <button class="btn btn-ghost btn-sm btn-circle text-error/80 hover:text-error" @click="logout" title="退出登录">
           <LogOut class="w-4 h-4" />
@@ -123,6 +145,12 @@
 
     <!-- Global Toast Container -->
     <ToastContainer />
+
+    <!-- Host Power Confirmation & Status Modal -->
+    <HostPowerModal 
+      v-model="powerModalOpen" 
+      :action="powerModalAction" 
+    />
 
     <!-- Main Container -->
     <main class="flex-1 p-3 sm:p-6 md:p-8 max-w-7xl w-full mx-auto">
@@ -139,12 +167,13 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue';
 import { useRouter, useRoute } from 'vue-router';
-import { Cpu, Palette, Settings, LogOut, Activity, Search } from 'lucide-vue-next';
+import { Cpu, Palette, Settings, LogOut, Activity, Search, Power, RotateCw, PowerOff } from 'lucide-vue-next';
 import { useAuthStore } from './stores/auth';
 import { useThemeStore } from './stores/theme';
 import { useServicesStore } from './stores/services';
 import ToastContainer from './components/ToastContainer.vue';
 import HardwareMonitor from './components/HardwareMonitor.vue';
+import HostPowerModal from './components/HostPowerModal.vue';
 
 const router = useRouter();
 const route = useRoute();
@@ -152,6 +181,14 @@ const authStore = useAuthStore();
 const themeStore = useThemeStore();
 const servicesStore = useServicesStore();
 const navbarSearchInputRef = ref<HTMLInputElement | null>(null);
+
+const powerModalOpen = ref(false);
+const powerModalAction = ref<'reboot' | 'poweroff' | null>(null);
+
+function openPowerModal(action: 'reboot' | 'poweroff') {
+  powerModalAction.value = action;
+  powerModalOpen.value = true;
+}
 
 function clearSearch() {
   servicesStore.searchKeyword = '';

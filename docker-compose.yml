@@ -3,10 +3,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: unitdeck:latest
+    image: crpi-tyyqcg8a2rpatesk.cn-shanghai.personal.cr.aliyuncs.com/zixidaxian/unitdeck:latest
     container_name: unitdeck
     restart: unless-stopped
     pid: host
+    privileged: true
     ports:
       - "8080:8080"
     environment:
@@ -15,7 +16,13 @@ services:
     volumes:
       # Persistent storage under /opt as requested by user
       - /opt/unitdeck/data:/app/data
-      # Map GPU DRM & device nodes for native 12GB VRAM monitoring
-      - /sys/class/drm:/sys/class/drm:ro
+      # Map host systemd & dbus sockets for service and power management
+      - /run/systemd/system:/run/systemd/system
+      - /run/dbus/system_bus_socket:/run/dbus/system_bus_socket
+      - /bin/systemctl:/bin/systemctl:ro
+      - /bin/journalctl:/bin/journalctl:ro
+      - /sbin/shutdown:/sbin/shutdown:ro
+      - /etc/systemd/system:/etc/systemd/system:ro
+      # Map GPU DRM & hardware monitoring interfaces
+      - /sys:/sys:ro
       - /dev/dri:/dev/dri:ro
-    privileged: true

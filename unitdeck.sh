@@ -64,6 +64,27 @@ reset_password() {
     fi
 }
 
+REGISTRY_IMAGE="crpi-tyyqcg8a2rpatesk.cn-shanghai.personal.cr.aliyuncs.com/zixidaxian/unitdeck:latest"
+
+push_image() {
+    check_docker
+    echo -e "${YELLOW}[INFO] 正在构建 Docker 镜像: ${REGISTRY_IMAGE}...${NC}"
+    docker build -t "${REGISTRY_IMAGE}" .
+    echo -e "${YELLOW}[INFO] 正在推送镜像至阿里云容器镜像仓库...${NC}"
+    docker push "${REGISTRY_IMAGE}"
+    echo -e "${GREEN}[成功] 镜像已成功推送至阿里云！${NC}"
+}
+
+deploy_image() {
+    check_docker
+    echo -e "${GREEN}[INFO] 正在从阿里云镜像仓库拉取最新镜像...${NC}"
+    docker compose pull
+    echo -e "${GREEN}[INFO] 正在启动最新容器...${NC}"
+    docker compose up -d
+    echo -e "${GREEN}[成功] UnitDeck 已成功部署启动！${NC}"
+    echo -e "访问地址: ${YELLOW}http://$(hostname -I | awk '{print $1}'):8080${NC}"
+}
+
 show_status() {
     echo -e "${BLUE}[INFO] 查看容器状态:${NC}"
     docker compose ps
@@ -80,6 +101,12 @@ case "$1" in
     restart)
         restart_app
         ;;
+    push)
+        push_image
+        ;;
+    deploy)
+        deploy_image
+        ;;
     logs)
         view_logs
         ;;
@@ -90,9 +117,11 @@ case "$1" in
         reset_password
         ;;
     *)
-        echo "使用方法: $0 {start|stop|restart|logs|status|reset-pwd}"
+        echo "使用方法: $0 {start|stop|restart|push|deploy|logs|status|reset-pwd}"
         echo ""
-        echo "  start      - 构建并启动 UnitDeck"
+        echo "  start      - 本地构建并启动 UnitDeck"
+        echo "  push       - 构建镜像并推送到阿里云"
+        echo "  deploy     - 从阿里云拉取最新镜像并在宿主机运行"
         echo "  stop       - 停止 UnitDeck"
         echo "  restart    - 重启 UnitDeck"
         echo "  logs       - 查看容器实时日志"

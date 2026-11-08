@@ -67,6 +67,8 @@ async def execute_action(req: ActionRequest):
             force_kill_timeout=timeout
         )
         return res
+    except PermissionError as pe:
+        raise HTTPException(status_code=403, detail=str(pe))
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 

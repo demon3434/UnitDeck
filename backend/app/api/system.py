@@ -3,8 +3,10 @@ import os
 import shutil
 import time
 from typing import Any, Dict
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends, HTTPException
+from app.api.auth import get_current_user
 from app.api.gpu import get_gpu_status
+from app.core.systemd_mgr import SystemdManager
 
 router = APIRouter(prefix="/api/system", tags=["System Hardware"])
 
@@ -195,3 +197,21 @@ async def get_system_metrics():
         "net": read_net_info(),
         "gpu": gpu_dict
     }
+
+@router.post("/host/reboot")
+async def reboot_host(user: dict = Depends(get_current_user)):
+    """Trigger safe host-level reboot via systemd (Administrator required)"""
+    try:
+        res = await SystemdManager.execute_host_power("reboot", operator=user["username"])
+        return {"status": "success", "message": "Host reboot scheduled successfully", "details": res}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+@router.post("/host/poweroff")
+async def poweroff_host(user: dict = Depends(get_current_user)):
+    """Trigger safe host-level shutdown via systemd (Administrator required)"""
+    try:
+        res = await SystemdManager.execute_host_power("poweroff", operator=user["username"])
+        return {"status": "success", "message": "Host poweroff scheduled successfully", "details": res}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))

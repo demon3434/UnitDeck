@@ -1,8 +1,28 @@
 import asyncio
+import logging
 import os
+import re
 import shutil
 from typing import Dict, List, Optional
 from pydantic import BaseModel
+
+logger = logging.getLogger("unitdeck.systemd")
+
+UNIT_NAME_REGEX = re.compile(r"^[a-zA-Z0-9][a-zA-Z0-9_\-\.@:]*(\.service|\.target|\.socket)?$")
+
+CRITICAL_SYSTEM_SERVICES = {
+    "ssh", "sshd", "ssh.service", "sshd.service",
+    "docker", "docker.service", "dockerd", "dockerd.service", "containerd", "containerd.service",
+    "systemd-networkd", "systemd-networkd.service",
+    "networkmanager", "networkmanager.service", "networking", "networking.service",
+    "systemd-resolved", "systemd-resolved.service",
+    "systemd-journald", "systemd-journald.service",
+    "dbus", "dbus.service",
+    "systemd-logind", "systemd-logind.service",
+    "polkit", "polkit.service",
+    "apparmor", "apparmor.service",
+    "firewalld", "firewalld.service", "ufw", "ufw.service"
+}
 
 NSENTER_BIN = shutil.which("nsenter") or "/usr/bin/nsenter"
 USE_NSENTER = False
@@ -272,6 +292,15 @@ class SystemdManager:
         if action not in ["start", "stop", "restart", "enable", "disable"]:
             raise ValueError(f"Unsupported action: {action}")
 
+        if not UNIT_NAME_REGEX.match(unit_name):
+            raise ValueError(f"Invalid unit name format: {unit_name}")
+
+        # Guard critical system infrastructure services from being stopped or disabled
+        if action in ["stop", "disable"]:
+            clean_name = unit_name.lower().removesuffix(".service")
+            if clean_name in CRITICAL_SYSTEM_SERVICES or unit_name.lower() in CRITICAL_SYSTEM_SERVICES:
+                raise PermissionError(f"Operating critical infrastructure service '{unit_name}' is strictly prohibited.")
+
         if not cls.is_available():
             if unit_name in _MOCK_UNITS:
                 if action == "start": _MOCK_UNITS[unit_name]["state"] = "active"
@@ -281,7 +310,7 @@ class SystemdManager:
                 elif action == "disable": _MOCK_UNITS[unit_name]["enabled"] = False
             return {"unit_name": unit_name, "action": action, "status": "success", "mock": True}
 
-        cmd = build_cmd("systemctl", [action, unit_name], scope=scope)
+        cmd = build_cmd("systemctl", [action, "--", unit_name], scope=scope)
         try:
             proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
             _, stderr = await asyncio.wait_for(proc.communicate(), timeout=float(force_kill_timeout))
@@ -291,7 +320,7 @@ class SystemdManager:
             return {"unit_name": unit_name, "action": action, "status": "success"}
         except asyncio.TimeoutError:
             if action == "stop" and force_kill_timeout > 0:
-                kill_cmd = build_cmd("systemctl", ["kill", "-s", "SIGKILL", unit_name], scope=scope)
+                kill_cmd = build_cmd("systemctl", ["kill", "-s", "SIGKILL", "--", unit_name], scope=scope)
                 kill_p = await asyncio.create_subprocess_exec(*kill_cmd)
                 await kill_p.communicate()
                 return {"unit_name": unit_name, "action": action, "status": "force_killed"}
@@ -299,9 +328,43 @@ class SystemdManager:
 
     @classmethod
     async def get_unit_logs(cls, unit_name: str, lines: int = 60, scope: str = "system") -> str:
+        if not UNIT_NAME_REGEX.match(unit_name):
+            raise ValueError(f"Invalid unit name format: {unit_name}")
+
         if not cls.is_available():
             return f"[{unit_name}] Mock service logs."
         cmd = build_cmd("journalctl", ["-u", unit_name, "-n", str(lines), "--no-pager"], scope=scope)
         proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
         stdout, _ = await proc.communicate()
         return stdout.decode("utf-8", errors="ignore")
+
+    @classmethod
+    async def execute_host_power(cls, action: str, operator: str = "admin") -> Dict[str, any]:
+        """Safely trigger host-level reboot or poweroff via systemctl/shutdown."""
+        if action not in ["reboot", "poweroff"]:
+            raise ValueError(f"Unsupported host power action: {action}. Must be 'reboot' or 'poweroff'.")
+
+        logger.warning(f"SECURITY AUDIT: Host power action '{action}' triggered by operator '{operator}'")
+
+        if not cls.is_available():
+            logger.info(f"Systemd not available in this environment. Simulating host power action: {action}")
+            return {"action": action, "status": "scheduled", "mock": True}
+
+        cmd = build_cmd("systemctl", [action])
+        try:
+            proc = await asyncio.create_subprocess_exec(*cmd, stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+            _, stderr = await asyncio.wait_for(proc.communicate(), timeout=5.0)
+            if proc.returncode != 0:
+                err = stderr.decode("utf-8", errors="ignore").strip()
+                # Fallback to /sbin/shutdown if available
+                if shutil.which("/sbin/shutdown") or os.path.exists("/sbin/shutdown"):
+                    flag = "-r" if action == "reboot" else "-h"
+                    fb_proc = await asyncio.create_subprocess_exec("/sbin/shutdown", flag, "now", stdout=asyncio.subprocess.PIPE, stderr=asyncio.subprocess.PIPE)
+                    _, fb_err = await asyncio.wait_for(fb_proc.communicate(), timeout=5.0)
+                    if fb_proc.returncode == 0:
+                        return {"action": action, "status": "scheduled", "fallback": True}
+                raise RuntimeError(f"Host {action} execution failed: {err}")
+            return {"action": action, "status": "scheduled"}
+        except Exception as e:
+            logger.error(f"Failed to execute host {action}: {e}")
+            raise

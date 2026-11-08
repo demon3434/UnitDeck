@@ -37,7 +37,8 @@
             />
           </div>
 
-          <div v-if="errorMsg" class="alert alert-error text-xs p-2.5 rounded-lg">
+          <div v-if="errorMsg" class="alert alert-error text-xs p-2.5 rounded-lg flex items-start gap-2">
+            <AlertCircle class="w-4 h-4 shrink-0 mt-0.5" />
             <span>{{ errorMsg }}</span>
           </div>
 
@@ -58,7 +59,7 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { useRouter } from 'vue-router';
-import { Cpu } from 'lucide-vue-next';
+import { Cpu, AlertCircle } from 'lucide-vue-next';
 import { useAuthStore } from '../stores/auth';
 
 const router = useRouter();
@@ -72,13 +73,12 @@ const errorMsg = ref('');
 async function handleLogin() {
   loading.value = true;
   errorMsg.value = '';
-  const success = await authStore.login(username.value, password.value);
+  const result = await authStore.login(username.value, password.value);
   loading.value = false;
-  if (success) {
+  if (result.success) {
     router.push('/');
   } else {
-    errorMsg.value = '用户名或密码错误，请重试';
+    errorMsg.value = result.error || '用户名或密码错误，请重试';
   }
 }
 </script>
-
